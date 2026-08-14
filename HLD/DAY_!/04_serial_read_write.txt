@@ -1,0 +1,48 @@
+Serial (sequential) read/write
+    Data is accessed in order, from contiguous blocks on disk. 
+    The disk head (HDD) or controller (SSD) moves in a straight line — one seek, 
+    then continuous streaming. Fast, because there's minimal repositioning overhead.
+
+Random read/write
+    Data is accessed at scattered, non-contiguous locations. 
+    Each access potentially requires a fresh seek (HDD: physical arm movement; 
+    SSD: different flash page/block lookup). 
+    Much slower per-operation because seek/positioning overhead dominates.
+
+Where this shows up in databases:
+    WAL/journal writes are sequential by design 
+        — append-only 
+        — which is why they're cheap even with fsync overhead.
+    Table scans reading a heap file in physical order are sequential — fast.
+    Index lookups (B-tree) often cause random reads 
+        — jumping to non-adjacent pages 
+        — which is why indexes help with selectivity but can still be slower than a sequential scan for large result sets.
+    B-tree writes/updates can cause random I/O too, which is why some databases 
+        (e.g. LSM-tree based stores like RocksDB, Cassandra) 
+        convert random writes into sequential writes via append-only structures, trading read complexity for write speed.
+
+
+Offset 
+    Byte/page offset (disk & memory addressing) 
+        — the distance from the start of a page/block to a specific location within it. 
+    A disk address is essentially (page number, offset) 
+        — this is how the engine jumps directly to data instead of scanning from the start.
+    
+python ex: 
+    def append_entry(path, entry):
+        record = {
+            "timestamp": time.time(),
+            "data": entry
+        }
+
+        with open(path, "ab") as f:
+            data = (json.dumps(record) + "\n").encode()
+            f.write(data)
+            f.flush()
+
+
+    def update_at_offset(path, offset, data):
+        with open(path, "r+b") as f:
+            f.seek(offset)
+            f.write(data)
+            f.flush()

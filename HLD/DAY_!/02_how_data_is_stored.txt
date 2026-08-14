@@ -1,0 +1,66 @@
+How Data Is Stored On Disk
+    A disk stores data in Blocks (Pages).
+    Disk
+    ├── Block 1
+    ├── Block 2
+    ├── Block 3
+    └── Block N
+    Database reads data block-by-block, not row-by-row.
+    Example:
+        Block Size = 512 Bytes
+        Employee Record Size = 128 Bytes
+        Records Per Block
+        512 / 128 = 4 Records
+
+        Block 1
+        -------
+        Emp1
+        Emp2
+        Emp3
+        Emp4
+
+        Block 2
+        -------
+        Emp5
+        Emp6
+        Emp7
+        Emp8
+
+        Full Table Scan Problem
+        Find:   SELECT * FROM Employee
+                WHERE ID = 98;
+
+        Without index:
+                        Block1
+                        ↓
+                        Block2
+                        ↓
+                        Block3
+                        ↓
+                        ...
+                        ↓
+                        Block25
+
+        For 100 records:
+        100 Records : 4 Records/Block = 25 Blocks
+
+        Worst case: 25 Disk Reads
+                    For millions of records, this becomes extremely slow.
+            
+Indexing
+    Index stores: (Search Key, Pointer)
+    Example:
+        ID     Pointer
+        ----------------
+        1      → Block1
+        2      → Block1
+        3      → Block1
+        4      → Block1
+        5      → Block2
+    Search:
+        Search Index
+            ↓
+        Get Pointer
+            ↓
+        Read Data Block
+    Much faster than scanning the entire table.

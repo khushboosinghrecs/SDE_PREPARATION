@@ -1,0 +1,37 @@
+SQL JOURNAL (TRANSACTION LOG)
+==============================
+ 
+    Journal = database's internal log of pending changes, written BEFORE the
+    actual data is modified. If a crash happens mid-transaction, the database
+    replays or undoes the journal to recover a consistent state. This is what
+    makes transactions atomic and crash-safe.
+    
+    Purpose:
+        1. Crash recovery - restore consistent state after a crash mid-transaction
+        2. Atomicity (ACID) - transaction fully happens or not at all
+        3. Rollback support - ROLLBACK uses the journal to undo changes
+ 
+    How it works:
+        1. Before modifying actual data pages, the database writes the intended
+        change to the journal/log.
+        2. Only after that's safely recorded does it modify the real data.
+        3. On commit, the journal entry is finalized.
+        4. If a crash happens before commit, the journal is used to undo
+        (rollback) any partial changes on restart.
+    
+    This pattern is called Write-Ahead Logging (WAL): log first, then modify
+    data.
+    
+    Database-specific implementations:
+        - SQLite       -> literally called "journal" (PRAGMA journal_mode:
+                        DELETE, TRUNCATE, WAL, MEMORY)
+        - PostgreSQL   -> Write-Ahead Log (WAL)
+        - MySQL InnoDB -> redo log + undo log
+        - SQL Server   -> Transaction Log (.ldf file)
+        - Oracle       -> Redo log
+ 
+    Example (SQLite):
+        PRAGMA journal_mode = WAL;      -- Write-Ahead Logging (better concurrency)
+        PRAGMA journal_mode = DELETE;   -- default, deletes journal file after commit
+        PRAGMA journal_mode = MEMORY;   -- journal kept in memory (faster, less safe)
+    

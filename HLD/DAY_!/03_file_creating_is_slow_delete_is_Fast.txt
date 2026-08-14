@@ -1,0 +1,11 @@
+Reason  :   creation does more work up front;
+            deletion often just marks something as gone.
+In filesystems:
+    Create: 
+        OS must find free space (search free block list/bitmap), 
+        allocate blocks, write actual data, create a directory entry, 
+        update metadata (inode, timestamps, size), 
+        and often flush changes to disk/journal for consistency.
+    Delete: 
+        OS typically just removes the directory entry and marks the blocks as free in the allocation table. 
+        The actual data isn't wiped — it's why "deleted" files are recoverable until overwritten

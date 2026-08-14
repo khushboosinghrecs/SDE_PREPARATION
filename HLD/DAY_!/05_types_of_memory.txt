@@ -1,0 +1,24 @@
+Volatile memory —     loses data when power is off. Fastest tier, directly addressable by CPU.
+                    - Registers, 
+                    - cache, 
+                    - RAM. 
+Non-volatile memory — retains data without power. 
+                      Used for persistent storage; slower than volatile tiers by orders of magnitude.
+                    - SSD
+                    - HDD, 
+                    - tape
+                    - flash/ROM. 
+Fastest to slowest: 
+            CPU registers
+                -→ L1/L2/L3 cache   
+                        -→ RAM 
+                            -→ SSD 
+                                -→ HDD 
+                                    -→ network/cloud storage 
+                                        -→ tape.
+Rule to Remember
+    CPU Cache  → Nanoseconds
+    RAM        → Tens of Nanoseconds
+    SSD        → Microseconds
+    Network    → Milliseconds
+    Database   → Milliseconds to Seconds

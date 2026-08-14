@@ -1,0 +1,20 @@
+"Everything is a file" 
+    — a core Unix philosophy: regular files, directories, devices (/dev/sda), pipes, sockets, and even process info (/proc) 
+    are all exposed through the same interface — read/write/open/close — instead of needing separate APIs per resource type.
+
+File descriptor (fd) — 
+    a small integer a process uses to reference an open file/resource. 
+    It's an index into that process's private fd table.
+    fd 0 = stdin
+    fd 1 = stdout
+    fd 2 = stderr
+    fd 3+ = whatever else the process opens (files, sockets, pipes)
+
+Lookup chain:
+    Process fd table → 
+        holds the integer 
+        points to an entry in the...
+    Open file table (system-wide) 
+        → tracks offset/position, access mode, reference count, points to  the open file table.
+    Inode 
+        → actual metadata (permissions, owner, size, pointers to disk blocks)
