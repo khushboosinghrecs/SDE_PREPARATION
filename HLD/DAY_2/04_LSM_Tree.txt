@@ -1,0 +1,308 @@
+1. Data in sorted -> read O(logn);
+                    file starting address + offset
+                    binary search (0, offset) -> log(n)
+2. Key value -> read(not possible) in O(1);
+                we need to store key and hash of value
+                extra memory;
+            
+
+    Full database
+    Full persistance
+    Fast read 
+    Fast write
+    Durable
+
+
+Memory -> 
+    Tree -> 
+        update -> log(n)
+        read -> log(n)
+
+    10k
+    Problem -> 
+        Disk -> 
+            save it on file 
+                Journal -> 
+
+Job -> 
+
+
+Tree -> inorder traversal -> 
+        Sorted data
+
+File -> Sorted data -> 
+        log(n)
+
+
+
+
+# Log Structured Merge Tree LSM DB
+
+tree -> 10000
+    3000 Node
+Journal -> 
+File 
+    2-file
+    1-file
+    0-file
+
+Read -> 
+    1. Search on Tree -> log(10000) -> O(1)
+    2. Search on Files ->   
+        log(n)
+
+Write -> 
+    Journal -> Ultra fast -> Sequential Write
+    Tree Add -> Ultra fast -> 
+
+Job 
+    -> Inorder
+    -> Seq Write 
+    -> CPU, IOPS
+    -> Limited Number IOPS. 
+    -> 50GBPS -> 45GBPS -> 5 gbps > 6Terabyte
+
+Tombstone
+
+Problems -> 
+
+
+
+LSM TREE (Log-Structured Merge Tree)
+=====================================
+Goal:
+- Fast writes
+- Fast reads
+- Durable
+- Store data in sorted order
+
+Basic Architecture:
+-------------------
+    Client
+    |
+    v
+    WAL / Journal
+    |
+    v
+    MemTable (Memory Tree)
+    |
+    | Flush when full
+    v
+    SSTable (Sorted File)
+    |
+    v
+    Compaction
+
+
+1. MEMTABLE
+-----------
+- In-memory sorted data structure.
+- Usually implemented using a Tree / Skip List.
+- Data remains sorted.
+Example:
+    a -> 1
+    b -> 2
+    c -> 3
+
+Operations:
+    - Insert  -> O(log N)
+    - Read    -> O(log N)
+    - Delete  -> O(log N)
+Inorder traversal of a Tree gives sorted data.
+
+2. WAL / JOURNAL
+----------------
+    - Write operation is first written to a journal.
+    - Journal provides durability.
+    - Uses sequential writes.
+    - Sequential disk writes are faster than random writes.
+
+Example:
+    PUT a 10
+    PUT b 20
+    DELETE c
+    If server crashes:
+        - Read journal
+        - Replay operations
+        - Rebuild MemTable
+
+
+3. WRITE FLOW
+-------------
+    Client
+    |
+    v
+    WAL
+    |
+    v
+    MemTable
+
+WAL:
+    - Durable
+    - Sequential write
+    - Fast
+MemTable:
+    - In-memory
+    - Fast write
+    - Fast read
+
+4. FLUSH
+--------
+When MemTable becomes full:
+    MemTable
+    |
+    v
+    Inorder traversal
+    |
+    v
+    Sorted data
+    |
+    v
+    Sequential write
+    |
+    v
+    SSTable
+
+Example:
+MemTable:
+    c -> 3
+    a -> 1
+    b -> 2
+After flush:
+    a -> 1
+    b -> 2
+    c -> 3
+
+
+5. SSTABLE
+----------
+SSTable = Sorted String Table
+    - Immutable file on disk.
+    - Data is stored in sorted order.
+    - Once written, it is not modified directly.
+Example:
+    SSTable-0
+        a -> 1
+        b -> 2
+        c -> 3
+    SSTable-1
+        d -> 4
+        e -> 5
+
+
+6. READ
+--------
+Read path:
+    1. Search MemTable
+    2. Search SSTables
+    3. Return latest value
+
+Example:
+    MemTable
+    |
+    v
+    SSTable-0
+    |
+    v
+    SSTable-1
+    |
+    v
+    SSTable-2
+
+MemTable search:
+    - O(log N)
+SSTable search:
+    - O(log N) per file
+    - Indexes and Bloom Filters reduce unnecessary file searches.
+
+
+7. WRITE
+--------
+Write path:
+    Client
+    |
+    v
+    WAL
+    |
+    v
+    MemTable
+Why fast?
+    - Memory write is fast.
+    - WAL uses sequential disk write.
+    - No random update of large files.
+
+
+8. COMPACTION
+-------------
+Problem:
+    SSTable-0
+    SSTable-1
+    SSTable-2
+    SSTable-3
+Same key can exist in multiple files.
+Example:
+    SSTable-0: a -> 10
+    SSTable-1: a -> 20
+    Latest value: a -> 20
+
+Compaction:
+    SSTable-0 + SSTable-1
+            |
+            v
+        Merge
+            |
+            v
+        New SSTable
+
+    Compaction:
+    - Merges sorted files
+    - Removes old versions
+    - Removes deleted data
+    - Reduces number of SSTables
+    - Improves read performance
+
+
+9. TOMBSTONE
+------------
+Deletion is not immediately performed on the old SSTable.
+Instead:
+    a -> TOMBSTONE
+Example:
+    Old SSTable: a -> 10
+    New SSTable: a -> TOMBSTONE
+During compaction:
+    - Old value is removed.
+    - Tombstone is removed when safe.
+
+
+10. LSM TREE PROBLEMS
+---------------------
+1. Read Amplification   - May search multiple SSTables.
+2. Write Amplification  - Compaction rewrites data multiple times.
+3. Space Amplification  - Old versions and tombstones temporarily consume space.
+4. Compaction Cost      - Uses CPU, disk I/O and memory.
+5. Too Many SSTables    - Can make reads slower.
+                        - Compaction is required.
+
+
+11. IMPORTANT TRADE-OFF
+-----------------------
+
+LSM Tree:
+            Fast Write
+                +
+            Durability
+                +
+            Sorted Storage
+                -
+            More complex Reads
+                -
+            Compaction Cost
+                -
+            Write Amplification
+
+"LSM Trees optimize for high write throughput by writing sequentially
+to a WAL and accumulating updates in memory. Once the MemTable is full,
+it is flushed as an immutable sorted SSTable. Background compaction
+merges SSTables, removes obsolete versions and tombstones, but introduces
+read, write and space amplification."

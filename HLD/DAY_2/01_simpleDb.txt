@@ -1,0 +1,144 @@
+Functional Req
+    1. Read, Write
+    2. Persist
+
+planning :
+    in init data will load from file to memory,
+    insert into self hash
+
+    1.
+        create file if not file exists
+        create hash = readfromfile
+                      hash map using dict;
+
+
+    PYTHON :
+        class SimpleDB():
+    def __init__(self, dbName):
+        self.file = self.createFileIfNotExist(dbName)
+        self.hash = self.loadFromFile(dbName)
+
+    def createFileIfNotExist(self, dbName):
+        Path(dbName).touch(exist_ok=True)
+        return open(dbName, "r+")
+    
+    def read(self, key):
+        if key not in self.hash: return
+        return self.hash[key]
+
+    def write(self, key, value):
+        self.hash[key] = value
+        self.persist()
+
+    def persist(self):
+        serialized = json.dumps(self.hash)
+        self.file.seek(0)
+        self.file.truncate()
+        self.file.write(serialized)
+        self.file.flush()
+        os.fsync(self.file.fileno())
+        
+
+    def loadFromFile(self, dbName):
+        with open(dbName, "r", encoding="utf-8") as file:
+            file_contents = file.read()
+            if file_contents == "":
+                return dict()
+            deserialized = json.loads(file_contents)
+            return deserialized
+    
+
+    JS:
+    const fs = require('fs');
+    const path = require('path');
+
+    class SimpleDB {
+        constructor(dbName){
+            this.file = this.createFileIfNotExist(dbName);
+            this.hash  = this.loadFromFile(dbName);
+        }
+
+        createFileIfNotExist(dbName){
+            // create file if it doesn't exists
+            if(!fs.existSync(dbName)){
+                fs.writeFileSync(dbName, '');
+            }
+
+            return dbName;
+        }
+        read(key){
+            if(!key in this.hash){
+                return undefined;
+            }
+
+            return this.hash(key);
+        }
+
+        write(key, value){
+            this.hash.set(key, value);
+            this.persist();
+        }
+
+        persist(){
+            const serialized = JSON.stringify(this.hash);
+
+            // write synchronously to disk
+            fs.writeFileSync(this.file, serialized);
+
+             // fs.writeFileSync() completes after the data is written
+            // to the OS, but for stronger durability we can open and fsync.
+
+            const fd = fs.openSync(this.file, 'r+');
+            
+            try{
+                fs.fsyncSync(fd)
+            }finally{
+                fs.closeSync(fd)
+            }
+
+            loadFromFile(dbName){
+                const file_contents = fs.readFileSync(dbName, 'Utf8');
+
+                if(file_contents === ''){
+                    return {};
+                }
+                return json.parse(fileContents);
+            }
+
+        }
+    }
+
+# HDD OFFset 14000 15000
+# File - 0     1000
+# 500 
+# truncate()
+# 0 => 500
+# 14000-14500
+
+sdb = SimpleDB("Chiya")
+# sdb.write("Name", "Chiya")
+# sdb.write("SName", "Srivastava")
+print(sdb.read("SName"))
+
+
+Write Amplification — Short Notes
+
+Write Amplification: 
+    Physical data written to disk is much larger than the actual logical data changed.
+    
+    In our `SimpleDB`:
+        Update 1 key → serialize entire object → rewrite entire file
+            Example:
+                DB size = 100 GB
+                Change = 10 bytes
+                Physical write ≈ 100 GB
+                    WA = Physical Write / Logical Write
+                    High write amplification → more disk I/O, slower writes, higher SSD/HDD wear.
+                    `truncate()` + full `write()` causes the entire file to be rewritten.
+                    Production DBs reduce this using:
+
+                    WAL (Write-Ahead Log)
+                    B-Tree / page-level updates
+                    LSM Tree
+                    Compaction
+                    Read from `hash` is approximately O(1), but loading the entire DB initially is O(file size).
