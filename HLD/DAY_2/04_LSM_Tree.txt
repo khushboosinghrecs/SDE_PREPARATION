@@ -4,94 +4,88 @@
 2. Key value -> read(not possible) in O(1);
                 we need to store key and hash of value
                 extra memory;
-            
-
     Full database
     Full persistance
     Fast read 
     Fast write
     Durable
 
-
 Memory -> 
-    Tree -> 
-        update -> log(n)
-        read -> log(n)
-
+    Tree -> by 10k nodes (constants nodes)
+        update -> log(n) > (10k constant data) => O(1)
+        read -> log(n) -> (10k constant data) => O(1)
     10k
     Problem -> 
         Disk -> 
             save it on file 
                 Journal -> 
 
-Job -> 
+Job schedular-> 
+    Tree -> inorder traversal -> (mem table)
+            Sorted data
+    File -> Sorted data -> 
+            log(n)
+            file(n-1) (SSTABLE)
+            file(n-2)
+            .....
+            file(1)
+compaction Algorithm :
+    why compaction table? 
+                    merge SSTABLE
+                    Read operation
+                    Remove redundancy (stale values from old files)
 
-Tree -> inorder traversal -> 
-        Sorted data
-
-File -> Sorted data -> 
-        log(n)
-
-
-
-
-# Log Structured Merge Tree LSM DB
-
-tree -> 10000
-    3000 Node
-Journal -> 
-File 
-    2-file
-    1-file
-    0-file
-
-Read -> 
-    1. Search on Tree -> log(10000) -> O(1)
-    2. Search on Files ->   
-        log(n)
-
-Write -> 
-    Journal -> Ultra fast -> Sequential Write
-    Tree Add -> Ultra fast -> 
-
-Job 
-    -> read -> Inorder
-    -> write -> Seq Write 
-    -> CPU, IOPS , (It is a common performance metric used to measure how many read and write tasks a computer storage device, like a hard drive or solid-state drive, can handle in one second.)
-    -> Limited Number IOPS. 
-    -> 50GBPS -> 45GBPS -> 5 gbps > 6Terabyte
-
-
-Problems -> 
-    key read,
-    if not present then check in all files (add Bloom filter (for non existence key));
-
-
+Log Structured Merge Tree LSM DB
+------------------------------------------------
+    tree -> 10000
+        3000 Node
+    Journal -> 
+    File 
+        2-file
+        1-file
+        0-file
+    Read -> 
+        1. Search on Tree -> log(10000) -> O(1)
+        2. Search on Files ->   
+            log(n)
+    Write -> 
+        Journal -> Ultra fast -> Sequential Write
+        Tree Add -> Ultra fast -> 
+    Job schedular: 
+        -> read -> Inorder
+        -> write -> Seq Write 
+        -> CPU, IOPS(It is a common performance metric used to measure how many read and write tasks 
+            a computer storage device, like a hard drive or solid-state drive, can handle in one second)
+        -> Limited Number IOPS. 
+        -> 50GBPS -> 45GBPS -> 5 gbps > 6Terabyte
+    Problems -> 
+        key read,
+        if not present then check in all files (add Bloom filter (for non existence key));
 
 LSM TREE (Log-Structured Merge Tree)
 =====================================
-Goal:
-    - Fast writes
-    - Fast reads
-    - Durable
-    - Store data in sorted order
+    Goal:
+        - Fast writes
+        - Fast reads
+        - Durable
+        - Store data in sorted order
 
-Basic Architecture:
--------------------
-    Client
-    |
-    v
-    WAL / Journal
-    |
-    v
-    MemTable (Memory Tree)
-    |
-    | Flush when full
-    v
-    SSTable (Sorted File)
-    |
-    v
-    Compaction
+    Basic Architecture:
+    -------------------
+        Client
+        |
+        v
+        WAL / Journal
+        |
+        v
+        MemTable (Memory Tree)
+        |
+        | Flush when full
+        v
+        SSTable (Sorted File)
+        |
+        v
+        Compaction
 
 
     1. MEMTABLE
@@ -148,22 +142,21 @@ Basic Architecture:
 
     4. FLUSH
     --------
-    When MemTable becomes full:
-        MemTable
-        |
-        v
-        Inorder traversal
-        |
-        v
-        Sorted data
-        |
-        v
-        Sequential write
-        |
-        v
-        SSTable
-
-    Example:
+        When MemTable becomes full:
+            MemTable
+            |
+            v
+            Inorder traversal
+            |
+            v
+            Sorted data
+            |
+            v
+            Sequential write
+            |
+            v
+            SSTable
+        Example:
         MemTable:
             c -> 3
             a -> 1
@@ -188,7 +181,6 @@ Basic Architecture:
             SSTable-1
                 d -> 4
                 e -> 5
-
 
     6. READ
     --------
@@ -253,14 +245,12 @@ Basic Architecture:
                     |
                     v
                 New SSTable
-
             Compaction:
             - Merges sorted files
             - Removes old versions
             - Removes deleted data
             - Reduces number of SSTables
             - Improves read performance
-
 
     9. TOMBSTONE
     ------------
@@ -287,7 +277,6 @@ Basic Architecture:
 
     11. IMPORTANT TRADE-OFF
     -----------------------
-
         LSM Tree:
                     Fast Write
                         +
