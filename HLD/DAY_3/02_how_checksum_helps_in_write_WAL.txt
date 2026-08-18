@@ -1,0 +1,50 @@
+Checksums in Write-Ahead Logs (WAL)
+-----------------------------------------------------
+
+Why WAL needs checksums specifically
+    WAL is the recovery mechanism itself — if a WAL record is corrupted and you don't detect it, 
+    you either replay garbage into the database (silent corruption) or crash mid-recovery. 
+    So WAL checksums exist to answer: "Is this log record trustworthy enough to replay?"
+
+    The core problem : partial/torn writes
+        - WAL records are appended continuously, often crossing disk block boundaries.
+        - If power fails or the process crashes *while writing a record*, you get a torn write — part of the record made it to disk, part didn't.
+        - Without a checksum, recovery can't tell the difference between "a complete valid record" and "a partially written record that happens to look plausible."
+
+How it works? (using PostgreSQL as the concrete example)
+    Each WAL record has this structure:
+        [Header: length, prev-record pointer, XID, resource manager ID]
+        [Record data]
+        [CRC32C checksum]  ← covers header + data
+    On recovery:
+        1. Read the record header → get expected length.
+        2. Read that many bytes.
+        3. Recompute CRC32C over header+data.
+        4. Compare to the stored checksum at the end of the record.
+        5. Mismatch → this is the end of valid WAL. 
+            Recovery stops here, not because something is "broken," 
+            but because this is exactly how PostgreSQL detects 
+            [the true end of the log] — the last complete, valid record before the crash. 
+            Everything before it is replayed; this one and anything after is discarded.
+
+    This is the elegant part: the checksum isn't just a corruption alarm — 
+    it's also how the system finds "where the WAL actually ends" after an unclean shutdown, 
+    since the on-disk file may have stale/pre-allocated space after the crash point.
+
+MySQL InnoDB (redo log) — same idea, different detail
+    - Each redo log block (512 bytes) has its own checksum field.
+    - On crash recovery, InnoDB scans redo log blocks; the first block with a checksum mismatch marks the recovery boundary.
+    - innodb_log_checksums config controls whether this is CRC32-based (default, since MySQL 5.7+).
+
+What checksums in WAL protect against — and what they don't
+    | Protects against                      | Does NOT protect against 
+    |---------------------------------------|-------------------------------------------------------
+    | Torn writes during crash              | Bugs that write *logically wrong* but well-formed records 
+    | Disk bit-rot on the WAL file itself   | Corruption that happens *before* the checksum is computed (e.g., in-memory corruption from a bad RAM stick, if no ECC) 
+    | Finding exact replay cutoff point     | Malicious tampering (CRC32 isn't cryptographic) 
+
+Practical implication for you as an engineer
+    If you're ever debugging a "database won't start / recovery fails" issue and see errors like invalid record length or incorrect checksum in WAL record, 
+    this is *expected safety behavior*, not necessarily a deeper bug — it means the DB found the crash point and is refusing to replay past it. 
+    The real question becomes: *why* did the crash happen (was it a clean-ish crash the WAL correctly bounded, 
+    or is there a deeper storage/hardware issue causing repeated torn writes)?

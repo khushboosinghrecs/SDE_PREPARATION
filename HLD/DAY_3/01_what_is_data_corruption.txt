@@ -1,0 +1,56 @@
+Data Corruption in Software Systems
+------------------------------------------
+What it is: 
+    Data becomes inaccurate, incomplete, or unusable due to unintended changes during storage, transmission, or processing. 
+    The data still "exists" but no longer matches its correct/intended state.
+
+ Common Causes
+
+1. Hardware failures
+    - Bad sectors on disk, failing SSD cells (wear-out)
+    - Bit flips from memory errors (cosmic rays, faulty RAM — hence ECC memory)
+    - Power loss mid-write (write not fully flushed to disk)
+    - Network packet corruption without proper checksums
+
+2. Software bugs
+    - Race conditions — two threads/processes writing the same record simultaneously
+    - Incorrect pointer arithmetic / buffer overflows overwriting adjacent memory
+    - Off-by-one errors truncating data
+    - Faulty serialization/deserialization (e.g., encoding mismatches, schema drift)
+    - Improper type casting causing silent truncation (e.g., int64 → int32 overflow)
+
+3. Concurrency & transaction issues
+    - Missing or incorrect locking → lost updates
+    - Non-atomic multi-step writes interrupted midway
+    - Improper isolation levels in databases → dirty reads/writes
+    - Distributed systems: partial writes across replicas without consensus (split-brain)
+
+4. Storage/filesystem issues
+    - Filesystem corruption (journal not replayed correctly after crash)
+    - Improper handling of "torn writes" (write spans multiple disk blocks, only some succeed)
+    - RAID misconfiguration or degraded array not detected in time
+
+5. Human/process errors
+    - Bad migrations (schema change misapplied to production)
+    - Manual edits bypassing application logic/validation
+    - Incorrect backup/restore (restoring wrong version or partial restore)
+
+6. External factors
+    - Malware/ransomware deliberately corrupting data
+    - Faulty third-party libraries or drivers
+    - Version mismatches between reader/writer of a data format
+
+ Why It Matters
+    - Silent corruption is worse than a crash — bad data propagates downstream (into caches, replicas, backups) before anyone notices
+    - Backups taken *after* corruption occurred are also corrupted — this is why point-in-time recovery and checksummed backups matter
+
+ Common Prevention/Detection Techniques
+    - Checksums/hashes (CRC32, SHA) on read/write paths
+    - ACID transactions for atomicity and consistency
+    - Write-ahead logging (WAL) for crash recovery
+    - ECC memory for hardware-level protection
+    - Idempotent writes and proper locking for concurrency safety
+    - Immutable/append-only data structures (reduces overwrite risk)
+    - Regular integrity checks (e.g., `fsck`, DB consistency checks, scrub jobs in ZFS/Btrfs)
+    - Replication with quorum/consensus (Raft, Paxos) to avoid split-brain corruption
+

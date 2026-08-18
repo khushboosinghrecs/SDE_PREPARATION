@@ -82,7 +82,7 @@ LSM TREE (Log-Structured Merge Tree)
         |
         | Flush when full
         v
-        SSTable (Sorted File)
+        SSTable (sorted string table /Sorted File)
         |
         v
         Compaction
