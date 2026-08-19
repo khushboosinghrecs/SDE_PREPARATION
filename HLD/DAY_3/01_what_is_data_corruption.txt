@@ -1,7 +1,7 @@
 Data Corruption in Software Systems
 ------------------------------------------
 What it is: 
-    Data becomes inaccurate, incomplete, or unusable due to unintended changes during storage, transmission, or processing. 
+    Data becomes inaccurate, incomplete, or unustable due to unintended changes during storage, transmission, or processing. 
     The data still "exists" but no longer matches its correct/intended state.
 
  Common Causes
